@@ -1,4 +1,5 @@
 <tbody class="totals"><tr id="TOTAL "{{if eq "TOTAL " $.ShowRefs}}class="target"{{end}}>
+	<!--
 	<td>
 		<span title="{{nformat .TotalPages.Count $.Site}} pageviews">{{nformat .TotalPages.CountUnique $.Site}}</span>
 	</td>
@@ -11,19 +12,15 @@
 			<span class='total-display'>{{nformat .TotalHitsDisplay $.Site}}</span> pageviews
 		</small>
 	</td>
+	-->
+
 	<td>
-		<div class="show-mobile">
-			<strong>Total</strong> |
-			<small>
-				Displaying
-				<span class="total-unique-display">{{nformat .TotalUniqueDisplay $.Site}}</span> visits;
-				<span class='total-display'>{{nformat .TotalHitsDisplay $.Site}}</span> pageviews
-			</small> |
-			<a class="load-refs" href="?showrefs=TOTAL%20&period-start={{tformat $.Site $.PeriodStart ""}}&period-end={{tformat $.Site $.PeriodEnd ""}}#TOTAL%20">Top referrers</a>
-		</div>
 		<div class="chart chart-bar chart-totals">
 			<span class="half"></span>
-			{{bar_chart .Context .TotalPages.Stats .Max .Daily}}
+			{{bar_chart .Context .TotalPages.Stats .MaxTotals .Daily}}
+		</div>
+		<div class="show-mobileXXX" style="text-align: left;">
+			<a class="load-refs" href="?showrefs=TOTAL%20&period-start={{tformat $.Site $.PeriodStart ""}}&period-end={{tformat $.Site $.PeriodEnd ""}}#TOTAL%20">Top referrers</a>
 		</div>
 		<div class="refs">{{if and $.Refs (eq $.ShowRefs "TOTAL ")}}
 			{{template "_backend_refs.gohtml" map "Refs" $.Refs "Site" $.Site "Totals" true}}

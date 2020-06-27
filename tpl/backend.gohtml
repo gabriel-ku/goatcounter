@@ -30,18 +30,38 @@
 {{end}} {{/* .User.ID */}}
 
 <form id="period-form">
-	<div class="period-form-date">
+	<div class="period-form-date"
+		 {{/*
+		style="border-bottom: 1px solid #ccc; padding-bottom: .4em"
+		*/}}
+		style="padding-bottom: .4em"
+	>
 		{{/* The first button gets used on the enter key, AFAICT there is no way to change that. */}}
 		<button type="submit" tabindex="-1" class="hide-btn" aria-label="Submit"></button>
 		{{if .ShowRefs}}<input type="hidden" name="showrefs" value="{{.ShowRefs}}">{{end}}
 		<input type="hidden" id="hl-period" name="hl-period" disabled>
 
+		<div style="text-align: right; ">
+			Saved views: <a href="#">404</a> · <a href="#">blog</a>
+			| <a href="#">Save current view</a>
+		</div>
 		<div class="date">
-			<input type="text" autocomplete="off" title="Start of date range to display" id="period-start" name="period-start" value="{{tformat .Site .PeriodStart ""}}">–{{- "" -}}
-			<input type="text" autocomplete="off" title="End of date range to display"   id="period-end"   name="period-end"   value="{{tformat .Site .PeriodEnd ""}}">{{- "" -}}
-			<button type="submit">Go</button>
+			<div style="display: flex; justify-content: space-between; ">
+				<span>
+					<input type="text" autocomplete="off" title="Start of date range to display" id="period-start" name="period-start" value="{{tformat .Site .PeriodStart ""}}">–{{- "" -}}
+					<input type="text" autocomplete="off" title="End of date range to display"   id="period-end"   name="period-end"   value="{{tformat .Site .PeriodEnd ""}}">{{- "" -}}
+				</span>
 
-			<span class="period-form-select period-{{.SelectedPeriod}}">
+				<span class="filter-wrap" style="margin-top: .2em;">
+					<input style="width: 18.5em;"
+						type="text" autocomplete="off" name="filter" value="{{.Filter}}" id="filter-paths"
+						placeholder="Filter paths" title="Filter the list of paths; matched case-insensitive on path and title"
+						{{if .Filter}}class="value"{{end}}>
+				</span>
+			</div>
+
+			<span class="period-form-select period-{{.SelectedPeriod}}"
+				style="margin-left: .3em; padding-top: .2em; display: inline-block;">
 				<span>
 					Select last
 					<button class="link" name="period" value="day">day</button> ·
@@ -57,14 +77,17 @@
 					<button class="link" name="period" value="week-cur">week</button> ·
 					<button class="link" name="period" value="month-cur">month</button>
 				</span>
-				<span>
-					{{if .ForcedDaily}}
-						<label title="Cannot use the hourly view for a time range of more than 90 days"><input type="checkbox" name="daily" checked disabled> View by day</label>
-					{{else}}
-						<label><input type="checkbox" name="daily" id="daily" {{if .Daily}}checked{{end}}> View by day</label>
-					{{end}}
-				</span>
 			</span>
+
+					<span style="float: right; margin-right: .4em; margin-top: .3em;">
+						{{if .ForcedDaily}}
+							<label title="Cannot use the hourly view for a time range of more than 90 days"><input type="checkbox" name="daily" checked disabled> View by day</label>
+						{{else}}
+							<label><input type="checkbox" name="daily" id="daily" {{if .Daily}}checked{{end}}> View by day</label>
+						{{end}}
+					</span>
+
+
 		</div>
 
 		<div class="period-form-move">
@@ -83,33 +106,45 @@
 	</div>
 
 	<div class="pages-list {{if .Daily}}pages-list-daily{{end}}">
-		<header class="h2 header-pages">
-			<h2>Paths</h2>
-			<div class="filter-wrap">
-				<input type="text" autocomplete="off" name="filter" value="{{.Filter}}" id="filter-paths"
-					placeholder="Filter paths" title="Filter the list of paths; matched case-insensitive on path and title"
-					{{if .Filter}}class="value"{{end}}>
-			</div>
-
-			<div class="scale-wrap">
-				<label for="scale">Y-axis scale</label>
-				<input type="number" autocomplete="off" name="scale" id="scale" value="{{.Max}}"
-					placeholder="Scale" title="Set the Y-axis scale">
-				<a href="#" id="scale-reset" title="Reset Y-axis scale to the default value">reset</a>;
-				<a href="#" id="scale-half" title="Set Y-axis scale to half the current value">half</a>
-			</div>
+		<!--
+		<header class="header-pages">
 		</header>
+		-->
 
-		<table class="count-list count-list-pages" data-max="{{.Max}}" data-scale="{{.Max}}">
-			{{template "_backend_totals.gohtml" .}}
+		<h2 class="screen-reader">Paths</h2>
+		<table class="count-list count-list-pages" data-max="{{.MaxTotals}}" data-scale="{{.MaxTotals}}">
 			<tbody class="pages">{{template "_backend_pages.gohtml" .}}</tbody>
 		</table>
 
-		<a href="#" class="load-more" {{if not .MorePages}}style="display: none"{{end}}>Show more</a>
+		<div style="">
+			<a href="#" style="" class="load-more" {{if not .MorePages}}style="display: none"{{end}}>Show more</a>
+		</div>
 	</div>
 </form>
 
+	<div>
+		<h2>Totals
+			<small>
+				{{nformat .TotalPages.CountUnique $.Site}} visits;
+					{{nformat .TotalPages.Count $.Site}} pageviews
+			</small>
+
+			<!--
+			<small>
+				Displaying
+				<span class="total-unique-display">{{nformat .TotalUniqueDisplay $.Site}}</span> visits;
+				<span class='total-display'>{{nformat .TotalHitsDisplay $.Site}}</span> pageviews
+			</small>
+			-->
+		</h2>
+
+		<table class="count-list">
+			{{template "_backend_totals.gohtml" .}}
+		</table>
+	</div>
+
 <div class="browser-charts">
+
 	<div>
 		<h2>Browsers</h2>
 		{{if eq .TotalBrowsers 0}}

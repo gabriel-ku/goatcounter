@@ -341,7 +341,7 @@ func (h backend) index(w http.ResponseWriter, r *http.Request) error {
 
 	var (
 		totalPages goatcounter.HitStat
-		max        int
+		maxTotals  int
 		totalErr   error
 	)
 	wg.Add(1)
@@ -349,7 +349,7 @@ func (h backend) index(w http.ResponseWriter, r *http.Request) error {
 		defer zlog.Recover(func(l zlog.Log) zlog.Log { return l.FieldsRequest(r) })
 		defer wg.Done()
 
-		max, totalErr = totalPages.Totals(r.Context(), start, end, filter, daily)
+		maxTotals, totalErr = totalPages.Totals(r.Context(), start, end, filter, daily)
 	}()
 
 	var browsers goatcounter.Stats
@@ -407,6 +407,14 @@ func (h backend) index(w http.ResponseWriter, r *http.Request) error {
 		}
 	}
 
+	l = l.Since("x")
+
+	max, err := goatcounter.GetMax(r.Context(), start, end, filter, daily)
+	if err != nil {
+		return err
+	}
+	l = l.Since("get max")
+
 	zsync.Wait(r.Context(), &wg)
 	if pagesErr != nil {
 		return pagesErr
@@ -448,12 +456,13 @@ func (h backend) index(w http.ResponseWriter, r *http.Request) error {
 		ShowMoreLocations  bool
 		Daily              bool
 		ForcedDaily        bool
+		MaxTotals          int
 		Max                int
 	}{newGlobals(w, r), cd, sr, r.URL.Query().Get("hl-period"), start, end,
 		filter, pages, totalPages, morePages, refs, moreRefs, total,
 		totalUnique, totalDisplay, totalUniqueDisplay, browsers, totalBrowsers,
 		systems, totalSystems, subs, sizeStat, totalSize, locStat, totalLoc,
-		showMoreLoc, daily, forcedDaily, max})
+		showMoreLoc, daily, forcedDaily, maxTotals, max})
 	l.Since("zhttp.Template")
 	return x
 }
@@ -627,7 +636,7 @@ func (h backend) pages(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return err
 	}
-	max := int(m)
+	maxTotals := int(m)
 
 	// Load new totals unless this is for pagination.
 	var (
@@ -636,13 +645,15 @@ func (h backend) pages(w http.ResponseWriter, r *http.Request) error {
 		totalPages goatcounter.HitStat
 		totalErr   error
 	)
+	// Filtering instead of paginating: get new "totals" stats as well.
+	// TODO: also do this for the horizontal bar charts below.
 	if exclude == "" {
 		wg.Add(1)
 		go func() {
 			defer zlog.Recover(func(l zlog.Log) zlog.Log { return l.FieldsRequest(r) })
 			defer wg.Done()
 
-			max, totalErr = totalPages.Totals(r.Context(), start, end, filter, daily)
+			maxTotals, totalErr = totalPages.Totals(r.Context(), start, end, filter, daily)
 			if totalErr != nil {
 				return
 			}
@@ -654,14 +665,14 @@ func (h backend) pages(w http.ResponseWriter, r *http.Request) error {
 				PeriodEnd   time.Time
 				TotalPages  goatcounter.HitStat
 				Daily       bool
-				Max         int
+				MaxTotals   int
 
 				// Dummy values so template won't error out.
 				TotalUniqueDisplay int
 				TotalHitsDisplay   int
 				Refs               bool
 				ShowRefs           string
-			}{r.Context(), site, start, end, totalPages, daily, max,
+			}{r.Context(), site, start, end, totalPages, daily, maxTotals,
 				0, 0, false, ""})
 		}()
 	}
@@ -681,13 +692,13 @@ func (h backend) pages(w http.ResponseWriter, r *http.Request) error {
 		PeriodEnd   time.Time
 		Daily       bool
 		ForcedDaily bool
-		Max         int
+		MaxTotals   int
 
 		// Dummy values so template won't error out.
 		Refs     bool
 		ShowRefs string
 	}{r.Context(), pages, site, start, end,
-		daily, forcedDaily, int(max), false, ""})
+		daily, forcedDaily, int(maxTotals), false, ""})
 	if err != nil {
 		return err
 	}
@@ -710,7 +721,7 @@ func (h backend) pages(w http.ResponseWriter, r *http.Request) error {
 		"total_display":        totalDisplay,
 		"total_unique":         totalUnique,
 		"total_unique_display": totalUniqueDisplay,
-		"max":                  max,
+		"max":                  maxTotals, // TODO: rename
 		"more":                 more,
 	})
 }
